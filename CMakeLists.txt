@@ -5,4 +5,9 @@ find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(wifi_tcp_client)
 
 # Add your application source files here
-target_sources(app PRIVATE src/main.c)
+target_sources(app PRIVATE src/main.c
+src/sensor/max30102.c
+        )
+target_include_directories(app PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
