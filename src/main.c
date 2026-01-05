@@ -62,28 +62,6 @@ int tcp_send(const char *data)
     return 0;
 }
 
-// int  max30102_data_Send(){
-//     int count = 0;
-//     while(count<150){
-//         max30102_data_t d;
-//         if (max30102_get_data(&d)) {
-//             tcp_send("{\"max30102\":{\"red\":%lu,\"ir\":%lu,\"hr\":%.1f,\"spo2\":%.2f,\"pi\":%.2f}}\n",
-//                      (unsigned long)d.red, (unsigned long)d.ir,
-//                      d.hr, d.spo2, d.pi);
-//             count++;
-//         }
-//         else {
-//             printk("MAX30102 data not valid\n");
-//         }
-//         k_msleep(200);
-//         max30102_update();
-//     }
-// }
-
-static bool max_streaming = false;
-static int max_stream_count = 0;
-
-
 static void handle_command(char cmd)
 {
     switch (cmd) {
@@ -97,10 +75,32 @@ static void handle_command(char cmd)
         tcp_send("{\"cmd\":\"ecg\"}\n");
         break;
 
-    case '3':
+    case '3': {
         printk("Server requested temperature data\n");
-        tcp_send("{\"cmd\":\"temperature\"}\n");
+
+        float temp_c = 0.0f;
+        float temp_f = 0.0f;
+
+        int ret = mlx_read_avg_temp(&temp_c, &temp_f);
+        if (ret < 0) {
+            char buf[64];
+            snprintf(buf, sizeof(buf), "{\"temperature\":{\"error\":%d}}\n", ret);
+            tcp_send(buf);
+            break;
+        }
+
+        char buf[128];
+        snprintf(
+            buf, sizeof(buf),
+            "{\"temperature\":{\"celsius\":%.2f,\"fahrenheit\":%.2f}}\n",
+            temp_c,
+            temp_f
+        );
+        tcp_send(buf);
+
+
         break;
+    }
 
     case '4':
         printk("Server requested MAX data\n");
